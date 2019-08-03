@@ -1,0 +1,267 @@
+---
+title: "Sales Forecast"
+author: "Saurabh Mudgal"
+date: "28 May 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+# read the data 
+#Set working directory
+
+library("forecast")
+setwd("C://BACP//Module 6 - Time Series Forecasting//Project")
+getwd()
+Sales_data = read.csv("Demand.csv", skip=1)
+attach(Sales_data)
+
+head(Sales_data)
+View(Sales_data)
+
+plot(Sales_data[,3])
+
+
+#create time series object item A
+
+Sales_data_ts = ts(Sales_data,frequency = 12, start = c(2002,1))
+plot.ts(Sales_data_ts)
+
+Sales_data_ts_A = ts(Sales_data[,3], frequency = 12,start = c(2002,1))
+
+library(forecast)
+trend_A = ma(Sales_data_ts_A,12,centre =T)
+plot(Sales_data_ts_A)
+lines(trend_A)
+
+
+
+#to get the straight line of the plot.
+#abline(reg=lm(Sales_data_ts_A~time(Sales_data_ts_A)))
+
+#create time series object item B
+
+Sales_data_ts_B = ts(Sales_data[,4], frequency = 12,start = c(2002,1))
+trend_B = ma(Sales_data_ts_B,12,centre =T)
+plot.ts(Sales_data_ts_B)
+lines(trend_B)
+
+
+#month plot
+monthplot(Sales_data_ts_A)
+
+monthplot(Sales_data_ts_B)
+
+boxplot(Sales_data_ts_A~cycle(Sales_data_ts_A))
+
+boxplot(Sales_data_ts_B~cycle(Sales_data_ts_B))
+
+##################################################################
+## Addtitive or Multiplicative 
+##################################################################
+##Decompose TS data into seaosonlity ,trend and irregular components 
+
+#Sales_data_CompA = decompose(Sales_data_ts_A)
+
+#assume seasonality is constant - additive model
+itemA_Dec = stl(Sales_data_ts_A,s.window = "p")
+itemB_Dec = stl(Sales_data_ts_B,s.window = "p")
+plot(itemA_Dec)
+plot(itemB_Dec)
+
+#itemA_Dec_D = decompose(Sales_data_ts_A,"multiplicative")
+#plot(itemA_Dec_D)
+
+
+
+#assume seasonality is not constant - Multiplicative model
+  itemA_Dec7 = stl(Sales_data_ts_A,s.window = 7)
+  plot(itemA_Dec7)
+  
+  ##check for smaller value of window
+  itemA_Dec3 = stl(Sales_data_ts_A,s.window = 3)
+  plot(itemA_Dec3)
+  
+  
+  # Deseasonal  is sum of trend and remainder .
+  DeseasonRev = (itemA_Dec7$time.series[,2]+itemA_Dec7$time.series[,3])
+  ts.plot(DeseasonRev,Sales_data_ts_A, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+  
+  DeseasonRev3 = (itemA_Dec3$time.series[,2]+itemA_Dec3$time.series[,3])
+  ts.plot(DeseasonRev3,Sales_data_ts_A, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+  
+  DeseasonRev_Const = (itemA_Dec$time.series[,2]+itemA_Dec$time.series[,3])
+  ts.plot(DeseasonRev_Const,Sales_data_ts_A, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+  
+  
+  ##item B
+itemB_Dec = stl(Sales_data_ts_B,s.window = "p")
+plot(itemB_Dec)
+
+DeseasonRevB_Const = (itemB_Dec$time.series[,2]+itemB_Dec$time.series[,3])
+  ts.plot(DeseasonRevB_Const,Sales_data_ts_B, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+  
+
+#assume seasonlaity is not constant 
+
+ itemB_Dec7 = stl(Sales_data_ts_B,s.window = 7)
+  plot(itemB_Dec7)
+  
+  DeseasonRev1 = (itemB_Dec7$time.series[,2]+itemB_Dec7$time.series[,3])
+  ts.plot(DeseasonRev,Sales_data_ts_B, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+
+  itemB_Dec3 = stl(Sales_data_ts_B,s.window = 3)
+  plot(itemB_Dec3)
+  
+  DeseasonRev1B = (itemB_Dec3$time.series[,2]+itemB_Dec3$time.series[,3])
+  ts.plot(DeseasonRev1B,Sales_data_ts_B, col=c("red", "blue"), main= "compare actual and De-seaonalise")
+  
+  ### assume multilicative model 
+  
+  #Sales_data_ts_A_log = log(Sales_data_ts_A)
+  #itemA_Dec_M = stl(Sales_data_ts_A_log,s.window = "p")
+  #plot(itemA_Dec_M)
+  #itemA_Dec_M$time.series[1:12,1]
+  #itemA_Dec_M_exp = exp(itemA_Dec_M$time.series[1:12,1])
+  #plot(itemA_Dec_M_exp,type= 'l')
+  
+  
+  ##################################################################
+  #####Residuals ##############
+  ##################################################################
+ResA = itemA_Dec$time.series[,3]
+ResB = itemB_Dec$time.series[,3]
+plot(ResA,main = "Residual of Item A")
+plot(ResB,main = "Residual of Item B")
+
+#Sales_data_CompB = decompose(Sales_data_ts_B)
+#plot(Sales_data_CompB)
+
+#check for stationarity####
+library(tseries)
+adf.test(Sales_data_ts_A)
+
+adf.test(Sales_data_ts_B)
+
+######forecast MOdel ##########
+
+
+# naive decomposition method ##############
+
+##item A #########
+
+#Divide the data into test and hold out sample 
+itemA_Dec_T <- window(Sales_data_ts_A, start=c(2002,1), end=c(2015,10))
+itemA_Dec_HO <- window(Sales_data_ts_A, start=c(2015,11), end=c(2017,7))
+
+#Decompose data itemA
+itemA_DecF=stl(itemA_Dec_T,s.window = 7)
+
+itemA_Dec_for = forecast(itemA_DecF, method="rwdrift", h=21)
+vec1 = cbind(itemA_Dec_HO,itemA_Dec_for$mean)
+ts.plot(vec1,col=c("blue", "red"), main="actual vs forecast itemA ")
+MAPE= mean(abs(vec1[,1]-vec1[,2])/vec1[,1])
+MAPE ##10%
+
+#item B
+
+#Divide the data into test and hold out sample 
+itemB_Dec_T <- window(Sales_data_ts_B, start=c(2002,1), end=c(2015,10))
+itemB_Dec_HO <- window(Sales_data_ts_B, start=c(2015,11), end=c(2017,7))
+
+#Decompose data itemB
+itemB_DecF=stl(itemB_Dec_T,s.window = 7)
+
+#library("forecast")
+
+itemB_Dec_for = forecast(itemB_DecF, method="rwdrift", h=21)
+vec1 = cbind(itemB_Dec_HO,itemB_Dec_for$mean)
+ts.plot(vec1,col=c("blue", "red"), main="actual vs forecast itemB ")
+
+MAPE= mean(abs(vec1[,1]-vec1[,2])/vec1[,1])
+MAPE ##17%
+
+
+#item A
+
+##holt-winter's method 
+#divide the item A data into test and hold out sample 
+
+itemA_T <- window(Sales_data_ts_A, start=c(2002,1), end=c(2015,10))
+itemA_HO <- window(Sales_data_ts_A, start=c(2015,11), end=c(2017,7))
+
+itemA_FC1= hw(itemA_T,h=21)
+itemA_FC1$model
+vec2 = cbind(itemA_HO,itemA_FC1$mean)
+ts.plot(vec2,col=c("blue", "red"), main="actual vs forecast itemA ")
+MAPE= mean(abs(vec2[,1]-vec2[,2])/vec2[,1])
+MAPE
+
+#forecast for future 
+#plot(itemA_FC1)
+
+
+# item B
+##holt-winter's method 
+
+#divide the item B data into test and hold out sample 
+
+itemB_T <- window(Sales_data_ts_B, start=c(2002,1), end=c(2015,10))
+itemB_HO <- window(Sales_data_ts_B, start=c(2015,11), end=c(2017,7))
+
+#applying holtes-winter method  as item B sales has both seasonality and trend .
+
+itemB_FC1= hw(itemB_T,h=21)
+itemB_FC1$model
+vec2 = cbind(itemB_HO,itemB_FC1$mean)
+ts.plot(vec2,col=c("blue", "red"), main="actual vs forecast itemB ")
+MAPE= mean(abs(vec2[,1]-vec2[,2])/vec2[,1])
+MAPE
+
+
+##Forecast demand of item A and item B for oct 2017 to Dec 2018.
+
+#item A
+
+itemA_FC_Future =stl(Sales_data_ts_A,s.window = 7)
+
+itemA_Dec_for = forecast(itemA_FC_Future, method="rwdrift", h=15)
+plot(itemA_Dec_for)
+itemA_Dec_for$upper
+itemA_Dec_for$lower
+
+
+#itmem B
+
+#install.packages("forecast")
+library(forecast)
+itemB_FC_Future = hw(Sales_data_ts_B,start=c(2017,10),15)
+itemB_FC_Future$upper
+#itemb_FC_F = forecast::hw(Sales_data_ts_B,15)
+head(itemB_FC_Future)
+plot(itemB_FC_Future)
+
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+..
