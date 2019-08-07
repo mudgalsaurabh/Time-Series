@@ -25,6 +25,13 @@ getwd()
 Sales_data = read.csv("Demand.csv", skip=1)
 attach(Sales_data)
 
+##skim for summary 
+install.packages("skimr")
+library(skimr)
+
+
+Sales_data %>% skim()
+
 head(Sales_data)
 View(Sales_data)
 
